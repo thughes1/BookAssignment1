@@ -84,18 +84,6 @@ class UserPreference:
     
 
 
-'''userPreferences = UserPreference()
-userPreferences.userPreference()
-'''
-
-# In[ ]:
-
-
-
-
-
-# In[ ]:
-
-
-
-
+userPreferences = UserPreference()
+dictionary = userPreferences.userPreference()
+print(dictionary)
