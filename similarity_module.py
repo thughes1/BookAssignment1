@@ -12,22 +12,22 @@ class SimilarityUsers:
         self.dictionary = dictionary
     
     def setDictionary(self,dictionary):
+        ''' Defines dictionary '''
         self.dictionary = dictionary
     def getDictionary(self):
+        ''' Returns userPreference (Unless set otherwise)'''
         return self.dictionary
         
     def setUser1(self,user):
         ''' Sets dictionary containing books(ISNB) and corresponding rating for user1 '''
         self.user1 = user
-        
     def getUser1(self):
         ''' Returns dictionary containing books(ISBN) and correspondin rating for user1 '''
         return self.user1
     
     def setUser2(self,user):
         ''' Sets dictionary containing books(ISNB) and corresponding rating for user2 '''
-        self.user2 = user
-        
+        self.user2 = user  
     def getUser2(self):
         ''' Returns dictionary containing books(ISBN) and correspondin rating for user2 '''
         return self.user2 
@@ -35,7 +35,6 @@ class SimilarityUsers:
     def setSimilarityMetric(self,similarityMetric):
         ''' Sets similarity metric '''
         self.similarityMetric = similarityMetric
-        
     def getSimilarityMetric(self):
         ''' Returns similarity metric '''
         return self.similarityMetric
@@ -45,6 +44,7 @@ class SimilarityUsers:
         userDict = {}
         for user in list(users):
             for book in list(users.values()):
+                # Sets the value as the rating 
                 userDict[user] = int(book[-1])
         return userDict
 
@@ -54,11 +54,13 @@ class SimilarityUsers:
         d2 = self.user2
     
         for users in d1.copy():
+            # If rating was zero (Implicit) remove from the comparison set
             if d1[users] == 0 or d2[users] == 0:
                 del d1[users]
                 del d2[users]
             else:
                 continue
+
         self.setUser1(d1)
         self.setUser2(d2)
         
@@ -66,20 +68,23 @@ class SimilarityUsers:
         ''' Returns a dictionary with values replaced by their rank '''
         rank = 1
         for user in comparisons:
+            # Overwriite value with rank
             comparisons[user] = rank
             rank += 1
         return comparisons
         
     def commonality(self):
         ''' Removes any uncommon books from user dictionaries '''
-        bookAndRatings1 = self.setUserDict(self.dictionary[self.user1]) # Converts from string of user ID to the dictionary key : value 
+        bookAndRatings1 = self.setUserDict(self.dictionary[self.user1]) 
         bookAndRatings2 = self.setUserDict(self.dictionary[self.user2])
         
+        # Calculate symmetric difference
         s1 = set(bookAndRatings1)
         s2 = set(bookAndRatings2)
-        sDiff = s1 ^ s2 # Symmetric difference
+        sDiff = s1 ^ s2 
         
-        for key in sDiff: # Removes any non-common books 
+        # Removes any non-common books 
+        for key in sDiff: 
             if key in bookAndRatings1:
                 del bookAndRatings1[key]
             if key in bookAndRatings2:
@@ -96,83 +101,89 @@ class SimilarityUsers:
         ''' Sets up data such that similarity metric may be carried out '''
         self.commonality()
         self.checkRated()
+        sort1 = self.sortedValues(self.user1)
+        sort2 = self.sortedValues(self.user2)
 
     def getEuclideanMetric(self): 
         ''' Returns the inverse of the sum of euclidean distance'''
-        # euclidean = Sqrt of Sum of the difference in ratings squared. 
-        # return 1 / (1 + (euclidean))
-        # The smaller the number, the more similar
         
         self.setUp()
 
         if len(self.user1) == 0:
-            return 0 # No similarity
+             # No similarity
+            return 0
         else:
-            sort1 = self.sortedValues(self.user1) # Sorts book IDs in alphabetical order
-            sort2 = self.sortedValues(self.user2)
-
-            subtractPower = lambda a,b : (a - b)**2 # Applies the euclidean distance formula to the values
-
-            euclidean = sqrt(sum(map(subtractPower,sort1,sort2)))
-            similarityMetric = 1 / (1+(euclidean)) # Calculates the inverse of the similarity metric
+            # Applies the euclidean distance formula to the values
+            subtractPower = lambda a,b : (a - b)**2 
+            euclidean = sqrt(sum(map(subtractPower,self.user1,self.user2)))
+            # Calculates the inverse of the similarity metric
+            similarityMetric = 1 / (1+(euclidean)) 
+            # Closer to one is more similar
             return similarityMetric
   
     def getCosineMetric(self):
         ''' Returns cosine similarity '''
-        # Ranges from -1 (Opposite) to 1 (the same) with zero suggesting no correlation
         self.setUp()
 
-        sort1 = self.sortedValues(self.user1)# Sorts book IDs in alphabetical order
-        sort2 = self.sortedValues(self.user2)
-        
-        multiply = lambda a,b : a * b # Returns the numerator for our cosine calculation
-        multiplications = sum(list(map(multiply,sort1,sort2)))
+        if len(self.user1) == 0:
+            # No similarity
+            return 0
+        else:
+            # Returns the numerator for our cosine calculation
+            multiply = lambda a,b : a * b 
+            multiplications = sum(list(map(multiply,self.user1,self.user2)))
 
-        square = lambda num : num ** 2 # return the denominator for our cosine calcuation
-        sumSquares1 = sum(map(square,sort1))
-        sumSquares2 = sum(map(square,sort2))
-    
-        try:
-            return multiplications / (sqrt(sumSquares1)*sqrt(sumSquares2)) 
-        except:
-            # No correlation
-            return 0 
-     
+            # return the denominator for our cosine calcuation
+            square = lambda num : num ** 2 
+            sumSquares1 = sum(map(square,self.user1))
+            sumSquares2 = sum(map(square,self.user2))
+        
+            try:
+                # Ranges from -1 (Opposite) to 1 (the same) with zero suggesting no correlation
+                return multiplications / (sqrt(sumSquares1)*sqrt(sumSquares2)) 
+            except:
+                # No correlation
+                return 0 
+        
     def getPearson(self):
         ''' Returns the Pearson Coefficient '''
         self.setUp()
 
-        '''THIS PART KEEPS GETTING REPEATED THUS SHOULD MAKE NEW FUNCTION'''
-        sort1 = self.sortedValues(self.user1)
-        sort2 = self.sortedValues(self.user2)
-        
-        # Returns the mean 
-        mean = lambda x : sum(x)/len(x)
-        meanUser1 = mean(sort1)
-        meanUser2 = mean(sort2)
-        
-        # Returns numerator
-        subMean = lambda x,y : (x - meanUser1) * (y - meanUser2)
-        numerator = sum(list(map(subMean,sort1,sort2))) 
-        
-        diffSqr1 = lambda x : (x - meanUser1)**2
-        diffSqr2 = lambda y : (y - meanUser2)**2
-        user1Diff = sum(list(map(diffSqr1,sort1)))
-        user2Diff = sum(list(map(diffSqr2,sort2)))
-
-        # Returns denominator
-        denominator = sqrt(user1Diff*user2Diff) 
-        try:
-            return numerator/denominator
-        except:
+        if len(self.user1) == 0:
             # No similarity
-            return 0 
-    
+            return 0
+        else:
+            
+            # Returns the mean 
+            mean = lambda x : sum(x)/len(x)
+            meanUser1 = mean(self.user1)
+            meanUser2 = mean(self.user2)
+            
+            # Returns numerator
+            subMean = lambda x,y : (x - meanUser1) * (y - meanUser2)
+            numerator = sum(list(map(subMean,self.user1,self.user2))) 
+            
+            # Returns denominator
+            diffSqr1 = lambda x : (x - meanUser1)**2
+            diffSqr2 = lambda y : (y - meanUser2)**2
+            user1Diff = sum(list(map(diffSqr1,self.user1)))
+            user2Diff = sum(list(map(diffSqr2,self.user2)))
+            denominator = sqrt(user1Diff*user2Diff) 
+
+            try:
+                # High Correlation: |0.50 - 1.00|
+                # Medium Correlation: |0.30 - 0.49|
+                # Low Correlation: |> 0.29| 
+                return numerator/denominator
+            except:
+                # No similarity
+                return 0 
+        
     def getSpearmanCorr(self):
         ''' Returns the Spearman Correlation Coefficient '''
         self.setUp()
 
-        if (self.user1 == 0):
+        if len(self.user1 == 0):
             return 0
         else:
             # Sorts dict by value in descending order
@@ -187,7 +198,7 @@ class SimilarityUsers:
             rankedUser1 = self.sortedValues(rankedUser1)
             rankedUser2 = self.sortedValues(rankedUser2)
 
-            # Define anon function for subtracting difference squared
+            # returns difference squared
             sqrDiff = lambda a,b : (a-b)**2
             
             # Calculate the numerator of the equation
@@ -196,6 +207,7 @@ class SimilarityUsers:
             # Calculate the denominator of the equation
             denominator = len(rankedUser1)**3 + len(rankedUser1)
             try:
+                # Value of one denotes perfect similarity
                 return 1-(numerator/denominator)
             except:
                 return 0 # No similarity 
@@ -204,20 +216,24 @@ class SimilarityUsers:
         ''' Returns the inverse of Manhattan distance '''
         self.setUp()
 
-        if len(self.user1) == 0: # Checks if any common ratings exist
+        if len(self.user1) == 0: 
             return 0 # No similarity
         else:
-            rankedUser1 = self.sortedValues(self.user1)
-            rankedUser2 = self.sortedValues(self.user2)
+
             # Define function for calculating the difference of two ratings
             diff = lambda a,b : a-b
-            manhattan = sum(list(map(diff,rankedUser1,rankedUser2)))
-            return 1/(1+manhattan) # Closer to one = more similar
-               
+            manhattan = sum(list(map(diff,self.user1,self.user2)))
+            try:
+                # Value of one denotes perfect similarity
+                return 1/(1+manhattan) 
+            except:
+                # No similarity
+                return 0
+                
 class SimilarityBooks(SimilarityUsers):
     
     def __init__(self,bookID='1'):
-        ''' Initiates similarity '''
+        ''' Compares two books '''
         super().__init__()
         self.book1 = bookID
         self.book2 = bookID
@@ -240,16 +256,14 @@ class SimilarityBooks(SimilarityUsers):
         ''' Returns Jaccard similarity metric '''
         s1 = []
         s2 = []
-
         userPref = super().getDictionary()
-        
+
+        # Check if any users have read the books
         for user in super().getDictionary():
             if self.book1 in userPref[user]:
                 s1.append(user)
             if self.book2 in userPref[user]:
                 s2.append(user)
-        
-        # Check if any users have read the books
         if s1 == [] and s2 == []:
             return 'Could not find either book in dataset'
         elif s2 == []:
@@ -266,37 +280,39 @@ class SimilarityBooks(SimilarityUsers):
             intersect = len(s1.intersection(s2))
             union = len(s1.union(s2))
             
-            # Jaccard = intersect/union
             try:
-                return 'Jaccard Similarity = %f' % (intersect/union) # Closer to one = more similar
+                # Value of one denotes perfect similarity
+                return 'Jaccard Similarity = %f' % (intersect/union) 
             except:
                 return 0 # No similarity
         
 class NSimilarItems(SimilarityBooks,SimilarityUsers):
     
     def __init__(self,bookID=None,userID=None):
+        ''' Calculates N similar items '''
         super().__init__()
-        #super(SimilarityUsers,self).__init__()
-        #super(SimilarityBooks,self).__init__()
-        # Both are initialised as null to allow for Boolean operation later
+        # Both are initialised as None to allow for Boolean operation later
         self.__bookID = bookID
         self.__userID = userID
     
     def setUserID(self,user):
+        ''' Sets user ID '''
         self.__userID = user
-        
     def setBookID(self,book):
+        ''' Sets book ID '''
         self.__bookID = book
     
     def getUserID(self):
+        ''' Returns user ID '''
         return self.__userID
     def getBookID(self):
+        ''' Return book ID'''
         return self.__bookID
     
     def getUnion(self,users):
-        ''' Gets users who form a union with the bookID '''
+        ''' returns users who have read the book '''
         usersWUnion = []
-
+        # If user has read the book, add them to the list to compare
         for user in users:
             if self.__bookID in users[user]:
                 usersWUnion.append(user)
@@ -308,39 +324,42 @@ class NSimilarItems(SimilarityBooks,SimilarityUsers):
     def bookCompare(self,users):
         ''' Extracts books to compare from our list of common raters '''
         books = []
-
-        for user in users: # Cycle through users
+        # Produce a list of unique books to compare
+        for user in users: 
             for isbn in super().getDictionary()[user].keys():
                 if isbn in books:
                     next
                 else:
                     books.append(isbn)
-        books.remove(self.__bookID) # Delete comparison book we are comparing against
+        # Delete the book we are producing similarities against
+        books.remove(self.__bookID) 
         return books
     
     def reduceDataset(self):
         ''' Reduces dataset to users that contain comparable data '''
-        # Remove any zeroes as they are not comparable
-        # Similar to super().checkRated() however this only modifies one user not two
-        dictionary = super().getDictionary()
+        
+        userPref = super().getDictionary()
 
-        d1 = dictionary[self.__userID]
-        for books in d1.copy():
-            if '0' in d1[books]:
-                del d1[books]
+        # Removes any books that userID has read that are not given an explicit rating (<10)
+        books = userPref[self.__userID]
+        for book in books.copy():
+            if '0' in books[book]:
+                del books[book]
             else:
                 continue
-
-        for user in dictionary.copy():
-            b = 0 # Initialise b for books 
-            for book in d1:
-                if book in dictionary[user]:
-                    b+=1 # Do not delete if at least one book exists 
+        # For each user, check whether they have any books that are comparable
+        # If not delete to reduce the dataset
+        for user in userPref.copy():
+            b = 0 
+            for book in books:
+                if book in userPref[user]:
+                    b+=1 
                 else:
                     continue
-            if b == 0: # If no common books we delete
-                del dictionary[user]
-        return dictionary
+            # No common books, thus delete
+            if b == 0: 
+                del userPref[user]
+        return userPref
                         
     def setUserDict(self,users):
         ''' Convert dictionary item to the correct format {'ISBN':Rating} '''
@@ -352,7 +371,7 @@ class NSimilarItems(SimilarityBooks,SimilarityUsers):
     
     def getNSimilarItems(self,similarityMetric,numberOfElements):
         ''' Returns n similar items to item '''
-        rankings = {}#  Defines users dictionary with opposing similarity rating
+        rankings = {}
         userPreference = super().getDictionary()
         
         if self.__userID != None:
@@ -360,12 +379,16 @@ class NSimilarItems(SimilarityBooks,SimilarityUsers):
             length = len(userPreference)
             i = 0
             for user in userPreference:
+                # Shows percentage of completion
                 print('%d%%' % ((i/length)*100),end='\r')
-                super().setUser1(self.__userID) # This must be reset each time due to it being removed in commonality...
+                # This must be reset each time due to it being removed in super().commonality()
+                super().setUser1(self.__userID) 
                 super().setUser2(user)
-                if super().getUser2 == super().getUser1(): # Don't compare to itself
+                # Don't compare to itself
+                if super().getUser2 == super().getUser1(): 
                     next
                 else:
+                    # Applies similarity metric
                     if similarityMetric == 'Euclidean':
                         similarity = super().getEuclideanMetric()
                     elif similarityMetric == 'Cosine':
@@ -376,93 +399,33 @@ class NSimilarItems(SimilarityBooks,SimilarityUsers):
                         similarity = super().getPearson()
                     else:
                         similarity = super().getManhattan() 
+                # Assigns associated similarity to user
                 rankings[user] = similarity
         
         elif self.__bookID != None:
-            # Similarity = Intersect / Union --> Therefor no similar users would result in a value of zero --> therefore we only need to test where Union exists!!!
-            #return self.bookCompare(self.getUnion(userPreference),userPreference)
+            # Similarity = Intersect / Union --> 
+            # Therefore no similar users would result in a value of zero --> 
+            # therefore we only need to test where Union exists
+            
             super().setBook1(self.__bookID)
+            # Reduces dataset to Comparable books only
             booksToCompare = self.bookCompare(self.getUnion(userPreference))
             length = len(booksToCompare)
+
             i=0
             for book in booksToCompare:
+                # Show percentage of completion
                 print('%d%%' % ((i/length)*100),end='\r')
                 i+=1 
                 super().setBook2(book)
+                # Assign associated ranking to book
                 rankings[book] = super().getSimilarity()
       
         else:
-            print('Book or user not specified')
+            print('Book or User not specified')
         
         # Reset in case called again without being instantiated as a new object
         self.__bookID = None         
         self.__userID = None 
-        return sorted(rankings.items(), key = lambda x:x[1], reverse = True)[:numberOfElements] # Returns list, sorted largest -> smallest
-    
-'''
-up = UserPreference()
-dictionary = up.userPreference()
-sim = SimilarityUsers()
-'''
-def setUserDict(users):
-    userDict = {}
-    for user in list(users):
-        for book in list(users.values()):
-            userDict[user] = int(book[-1])
-    return userDict
-
-def testUser():
-    sim = SimilarityUsers()
-    user1 = '276772'
-    user2 = '11676'
-    sim.setUser1(user1)
-    sim.setUser2(user2)
-    print(sim.getEuclideanMetric())
-#testUser()
-    
-def testUserSim(dictionary,sim):
-
-    start_time = time.time()
-
-    user1 = dictionary['276772']
-    user1Dict = {}
-    user2 = dictionary['11676'] 
-    user2Dict = {}
-
-    #print(list(user1.values())[0][-1])
-    user1Dict = setUserDict(user1)
-    user2Dict = setUserDict(user2)
-
-
-    sim.setUser1(user1Dict)
-    sim.setUser2(user2Dict)
-    print(sim.getCosineMetric())
-
-    print(time.time() - start_time) # TAKES circa 35 SECONDS!
-    
-#testUserSim(dictionary,sim)
-
-def testBooks():
-    start_time = time.time()
-    sim = SimilarityBooks()
-    sim.setBook1('0345339711')
-    sim.setBook2('059035342X')
-    print(sim.getSimilarity())
-    print(time.time() - start_time)
-#testBooks()
-
-def testNSim():
-    start_time = time.time()
-    sim = NSimilarItems()
-    #sim.setUserID('11676')
-    #print(sim.getNSimilarItems('Euclidean',dictionary))
-    sim.setBookID('0345339711')
-    #sim.getNSimilarItems('Euclidean',dictionary) # Shouldn't need to specify a sim metric here
-    #sim.setUserID('276925')
-    #dictionary = sim.reduceDataset(dictionary) # Greatly reduces the dataset to iterate over
-    print((sim.getNSimilarItems('Euclidean',50)))
-    print(time.time()-start_time)
-#testNSim()            
-
-
-
+        # Returns N similar items in order of their ranking 
+        return sorted(rankings.items(), key = lambda x:x[1], reverse = True)[:numberOfElements] 

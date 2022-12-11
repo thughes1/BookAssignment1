@@ -1,13 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# In[34]:
-
-
 class UserPreference:
     
     def __init__(self,filename='Users.csv'):
-        ''' Init object '''
+        ''' Produces a dictionary containing user information '''
         self.filename = filename
     
     def setFilename(self,filename):
@@ -26,20 +20,26 @@ class UserPreference:
         return dictionary
     
     def loadCSV(self):
-        ''' Loads the relevant csv files'''
-        dictionary = {} # Init dictionary 
+        ''' Loads csv files '''
+        dictionary = {}
         try:
             with open(self.filename, encoding='ISO-8859-1') as f:
-                next(f) # Skip the titles
+                # Skip Titles
+                next(f) 
                 for line in f:
                     try:
-                        lineSplit = line.split(';') # Use semi-colon as deliminater
-                        lineSplit = [s.strip('"') for s in lineSplit] # Remove extra quotation marks
-                        id = lineSplit[0] # First value is unique identifier
-                        vals = lineSplit[1:] # Everything else 
+                        lineSplit = line.split(';')
+                        # Remove extra quotation marks around strings
+                        lineSplit = [s.strip('"') for s in lineSplit] 
+                        # First value is the Key
+                        id = lineSplit[0]
+                        # Everything else is the Values
+                        vals = lineSplit[1:]
+
                         if self.filename == 'Books.csv' or self.filename == 'Users.csv': 
                             dictionary[id] = tuple(vals)  
                         else:
+                            # ISBN's are not unique so must check if they exist as not to overwrite them
                             ISBN = vals[0] 
                             rating = vals[1].replace('"','')
                             rating = rating.replace('\n','')
@@ -51,35 +51,36 @@ class UserPreference:
                                 dictionary[id] = {}
                                 dictionary[id][ISBN] = rating
 
-                    except: # In case values cannot be split 
+                    except:
                         continue
             f.close()
-            return dictionary # Returns csv file as dictionary in form, id:{var1,var2,...,varn}
+            return dictionary
         except :
             print('file not found!')
 
     def userPreference(self):
         ''' Returns a dictionary containing: ID, ISBN, Book title, author, year of publication, rating '''
 
-        user_preference = {} # IDs, ISBN, Book title, author, year of publication, rating
+        # Load csv files into dictionaries (Users.csv not required)
+        user_preference = {} 
         self.setFilename('Book-Ratings.csv')
         bookRatings = self.loadCSV()
         self.setFilename('Books.csv')
         books = self.loadCSV()
 
         for id in bookRatings:
-            
-            user_preference[id] = {} # Init user_preference sub dictionary for IDs
+            user_preference[id] = {} 
             for ISBN in bookRatings[id]:
+                # Not every book rated is in the Books.csv file
                 if ISBN in books:
-                    user_preference[id][ISBN] = {} # Init user_preference sub dictionary for ISBN
+                    user_preference[id][ISBN] = {} 
                     try:
                         user_preference[id][ISBN] = list(books[ISBN])[0],list(books[ISBN])[1],list(books[ISBN])[2],bookRatings[id][ISBN]
-                    except KeyError: # Exception in case ISBN doesn't exist
+                    except KeyError: 
                         continue
                 else:
-                    continue # If book reviewed is not in books then skip to next book
+                    continue 
                     
-        # Delete empty sets 
+        # Delete users that do not contain any ratings
         return self.cleanDataset(user_preference)
     
