@@ -37,11 +37,12 @@ class UserPreference:
                         lineSplit = [s.strip('"') for s in lineSplit] # Remove extra quotation marks
                         id = lineSplit[0] # First value is unique identifier
                         vals = lineSplit[1:] # Everything else 
-                        if self.filename == 'Books.csv' or self.filename == 'Users.csv': # != not working for some reason
+                        if self.filename == 'Books.csv' or self.filename == 'Users.csv': 
                             dictionary[id] = tuple(vals)  
                         else:
-                            ISBN = vals[0] # Unique identifier for book
-                            rating = vals[1].replace('\n','') # Rating given to book
+                            ISBN = vals[0] 
+                            rating = vals[1].replace('"','')
+                            rating = rating.replace('\n','')
                             if id in dictionary:
                                 # Append to existing key value in dict
                                 dictionary[id][ISBN] = rating
@@ -82,8 +83,3 @@ class UserPreference:
         # Delete empty sets 
         return self.cleanDataset(user_preference)
     
-
-
-userPreferences = UserPreference()
-dictionary = userPreferences.userPreference()
-print(dictionary)
